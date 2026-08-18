@@ -1,2 +1,6 @@
 artifact/
 "failed-log.txt"  
+artifact-ksu/ 
+success-log.txt 
+run-*.log 
+failed-log.txt
