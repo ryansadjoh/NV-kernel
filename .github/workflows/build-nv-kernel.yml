@@ -63,6 +63,9 @@ jobs:
           # 1. Hilangkan suffix tanggal di setlocalversion (dimodifikasi repo sumber: -$(date +%m-%d))
           sed -i 's/-$(date "+%m-%d")//' scripts/setlocalversion
           grep -n 'CONFIG_LOCALVERSION\|date' scripts/setlocalversion | tail -3 || true
+          # 2. Hapus jejak compiler Proton clang → ganti dengan gcc style Samsung era 2018 (S9/Galaxy Note 9)
+          sed -i 's|\$CC -v 2>&1|echo "gcc version 4.9.4 20150123 (prerelease) (GCC)"|' scripts/mkcompile_h
+          echo "Compiler spoofed check:" && grep -n 'gcc version 4.9.4' scripts/mkcompile_h | head -1 || true
           touch .scmversion
           echo 'CONFIG_LOCALVERSION="-19761338"' >> arch/arm64/configs/$CONF
           echo "CONFIG_KSU=y" >> arch/arm64/configs/$CONF
