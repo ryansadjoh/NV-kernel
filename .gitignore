@@ -4,3 +4,6 @@ artifact-ksu/
 success-log.txt 
 run-*.log 
 failed-log.txt
+artifact-final-verify/ 
+artifact-final/ 
+artifact-new/

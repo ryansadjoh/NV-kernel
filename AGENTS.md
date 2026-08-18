@@ -29,11 +29,19 @@ Catatan penting:
 
 ## 1. Naming & Discovery Specifications
 
-* **Kernel Name Branding:** `nv-kernel` (`LOCALVERSION="-nv-kernel"`)
+* **Kernel Name Branding (artifact/zip):** `nv-kernel`
+* **Kernel Banner Spoof (uname -r / /proc/version):** gaya stock Samsung Galaxy S9/S9+ — `4.4.232-19761338 (release@21BBA028)` — identitas custom kernel & jejak GitHub Actions sengaja disembunyikan
 * **Target Device:** Xiaomi Redmi Note 7 (`lavender`)
 * **Kernel Base:** Linux 4.4 CAF (Code Aurora Forum)
 * **Output Artifact:** `nv-kernel-Lavender-4.4-CAF-SukiSU-SuFS.zip`
 * **Defconfig Target:** `lavender-perf_defconfig`
+
+### Mekanisme spoof Samsung (WAJIB dipertahankan)
+1. `CONFIG_LOCALVERSION="-19761338"` — versi 8-digit gaya firmware Samsung S9
+2. `export KBUILD_BUILD_USER=release` + `KBUILD_BUILD_HOST=21BBA028` — builder gaya Samsung build farm (menghapus `runner@...`)
+3. `sed -i 's/-$(date "+%m-%d")//' scripts/setlocalversion` — repo Yasir MEMODIFIKASI setlocalversion (baris 173) menambah suffix tanggal `-MM-DD`; sed ini menghapusnya. Tanpa ini versi bocor sebagai custom build (ada `-08-18`).
+4. `touch .scmversion` — mencegah suffix git tambahan
+5. Yang masih terlihat: compiler string `Proton clang 13.0.0` (opsional untuk disamarkan; hampir tidak pernah dicek app)
 
 ## 2. Source Paths (WAJIB — digunakan oleh workflow saat ini)
 
