@@ -66,6 +66,27 @@ jobs:
           echo "CONFIG_HAVE_KPROBES=y" >> arch/arm64/configs/$CONF
           echo "CONFIG_KPROBE_EVENTS=y" >> arch/arm64/configs/$CONF
 
+      - name: Patch stpcpy for LTO/lld link
+        run: |
+          cd source
+          sed -i 's@#endif /\* _LINUX_STRING_H_ \*/@extern char *stpcpy(char *__restrict__ dest, const char *__restrict__ src);\n\n#endif /* _LINUX_STRING_H_ */@' include/linux/string.h
+          cat >> lib/string.c <<'EOF'
+
+/**
+ * stpcpy - copy a string from src to dest returning a pointer to the new end
+ *          of dest, including src's %NUL-terminator. May overrun dest.
+ * @dest: pointer to end of string being copied into.
+ * @src: pointer to the beginning of string being copied from.
+ */
+char *stpcpy(char *__restrict__ dest, const char *__restrict__ src)
+{
+	while ((*dest++ = *src++) != '\0')
+		/* nothing */;
+	return --dest;
+}
+EXPORT_SYMBOL(stpcpy);
+EOF
+
       - name: Compile nv-kernel
         run: |
           cd source
