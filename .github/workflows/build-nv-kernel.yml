@@ -60,6 +60,8 @@ jobs:
           echo "Target CAF Defconfig: $CONF"
 
           # Spoof branding: gaya stock Samsung Galaxy S9/S9+ (kernel 4.4 stock)
+          # .scmversion mencegah setlocalversion menambah suffix tanggal (-08-18)
+          touch .scmversion
           echo 'CONFIG_LOCALVERSION="-19761338"' >> arch/arm64/configs/$CONF
           echo "CONFIG_KSU=y" >> arch/arm64/configs/$CONF
           echo "CONFIG_OVERLAY_FS=y" >> arch/arm64/configs/$CONF
