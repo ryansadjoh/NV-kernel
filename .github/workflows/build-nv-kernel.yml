@@ -35,17 +35,17 @@ jobs:
             git clone --depth=1 $BRANCH_ARG "${{ github.event.inputs.repo_url }}" source
           else
             echo "Searching for best 4.4 CAF lavender kernel..."
-            REPO=$(curl -s "[https://api.github.com/search/repositories?q=android_kernel_xiaomi_lavender+caf&sort=stars](https://api.github.com/search/repositories?q=android_kernel_xiaomi_lavender+caf&sort=stars)" | jq -r '.items[0].clone_url')
+            REPO=$(curl -s "https://api.github.com/search/repositories?q=android_kernel_xiaomi_lavender+caf&sort=stars" | jq -r '.items[0].clone_url')
             git clone --depth=1 "$REPO" source
           fi
 
           # Fetch Proton Clang Toolchain
-          git clone --depth=1 [https://github.com/kdrag0n/proton-clang.git](https://github.com/kdrag0n/proton-clang.git) $HOME/proton-clang
+          git clone --depth=1 https://github.com/kdrag0n/proton-clang.git $HOME/proton-clang
 
       - name: Inject SukiSU, SuFS & Set Kernel Name
         run: |
           cd source
-          curl -LSs "[https://raw.githubusercontent.com/tiann/KernelSU/main/kernel/setup.sh](https://raw.githubusercontent.com/tiann/KernelSU/main/kernel/setup.sh)" | bash -
+          curl -LSs "https://raw.githubusercontent.com/tiann/KernelSU/main/kernel/setup.sh" | bash -
           
           CONF=$(basename $(find arch/arm64/configs/ -name "*lavender*" -o -name "*perf_defconfig" | head -n 1))
           echo "Target CAF Defconfig: $CONF"
@@ -78,7 +78,7 @@ jobs:
 
       - name: Package to AnyKernel3 ZIP
         run: |
-          git clone --depth=1 [https://github.com/osm0sis/AnyKernel3](https://github.com/osm0sis/AnyKernel3) AnyKernel3
+          git clone --depth=1 https://github.com/osm0sis/AnyKernel3 AnyKernel3
           if [ -f "source/out/arch/arm64/boot/Image.gz-dtb" ]; then
             cp source/out/arch/arm64/boot/Image.gz-dtb AnyKernel3/
           elif [ -f "source/out/arch/arm64/boot/Image.gz" ]; then
