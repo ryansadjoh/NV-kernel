@@ -50,7 +50,10 @@ jobs:
       - name: Inject SukiSU, SuFS & Set Kernel Name
         run: |
           cd source
-          curl -LSs "https://raw.githubusercontent.com/tiann/KernelSU/main/kernel/setup.sh" | bash -
+          git clone --depth=1 https://github.com/gmh5225/KernelSU-4.4 KernelSU
+          ln -sf ../KernelSU/kernel drivers/kernelsu
+          printf '\nobj-$(CONFIG_KSU) += kernelsu/\n' >> drivers/Makefile
+          printf '\nsource "drivers/kernelsu/Kconfig"\n' >> drivers/Kconfig
 
           CONF=$(basename $(find arch/arm64/configs/ -name "*lavender*" -o -name "*perf_defconfig" | head -n 1))
           echo "Target CAF Defconfig: $CONF"
@@ -112,12 +115,53 @@ jobs:
       - name: Package to AnyKernel3 ZIP
         run: |
           git clone --depth=1 https://github.com/osm0sis/AnyKernel3 AnyKernel3
-          if [ -f "source/out/arch/arm64/boot/Image.gz-dtb" ]; then
-            cp source/out/arch/arm64/boot/Image.gz-dtb AnyKernel3/
-          elif [ -f "source/out/arch/arm64/boot/Image.gz" ]; then
-            cp source/out/arch/arm64/boot/Image.gz AnyKernel3/
-          fi
           cd AnyKernel3
+          cat > anykernel.sh <<'EOF'
+          ### AnyKernel3 Ramdisk Mod Script
+          ## osm0sis @ xda-developers
+
+          ### AnyKernel setup
+          # global properties
+          properties() { '
+          kernel.string=nv-kernel by ryansadjoh
+          do.devicecheck=1
+          do.modules=0
+          do.systemless=1
+          do.cleanup=1
+          do.cleanuponabort=0
+          device.name1=lavender
+          supported.versions=
+          supported.patchlevels=
+          supported.vendorpatchlevels=
+          '; } # end properties
+
+          ### AnyKernel install
+          ## boot files attributes
+          boot_attributes() {
+          set_perm_recursive 0 0 755 644 $RAMDISK/*;
+          set_perm_recursive 0 0 750 750 $RAMDISK/init* $RAMDISK/sbin;
+          } # end attributes
+
+          # boot shell variables
+          BLOCK=/dev/block/bootdevice/by-name/boot;
+          IS_SLOT_DEVICE=0;
+          RAMDISK_COMPRESSION=auto;
+          PATCH_VBMETA_FLAG=auto;
+
+          # import functions/variables and setup patching - see for reference (DO NOT REMOVE)
+          . tools/ak3-core.sh;
+
+          # boot install
+          dump_boot;
+
+          write_boot;
+          ## end boot install
+          EOF
+          if [ -f "../source/out/arch/arm64/boot/Image.gz-dtb" ]; then
+            cp ../source/out/arch/arm64/boot/Image.gz-dtb .
+          elif [ -f "../source/out/arch/arm64/boot/Image.gz" ]; then
+            cp ../source/out/arch/arm64/boot/Image.gz .
+          fi
           zip -r9 ../nv-kernel-Lavender-4.4-CAF-SukiSU-SuFS.zip * -x .git README.md
 
       - name: Upload Output Artifact
