@@ -1,0 +1,94 @@
+name: Build nv-kernel Lavender 4.4 CAF (SukiSU + SuFS)
+
+on:
+  workflow_dispatch:
+    inputs:
+      repo_url:
+        description: 'URL Repo Kernel 4.4 CAF (Kosongkan untuk pencarian otomatis)'
+        required: false
+        default: ''
+      repo_branch:
+        description: 'Branch 4.4 CAF (Opsional)'
+        required: false
+        default: ''
+
+jobs:
+  build-nv-kernel:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential bc libncurses5-dev libssl-dev bison flex \
+            libelf-dev clang lld git ccache zip curl jq
+
+      - name: Fetch 4.4 CAF Kernel Source & Toolchain
+        run: |
+          if [ -n "${{ github.event.inputs.repo_url }}" ]; then
+            BRANCH_ARG=""
+            if [ -n "${{ github.event.inputs.repo_branch }}" ]; then
+              BRANCH_ARG="-b ${{ github.event.inputs.repo_branch }}"
+            fi
+            git clone --depth=1 $BRANCH_ARG "${{ github.event.inputs.repo_url }}" source
+          else
+            echo "Searching for best 4.4 CAF lavender kernel..."
+            REPO=$(curl -s "[https://api.github.com/search/repositories?q=android_kernel_xiaomi_lavender+caf&sort=stars](https://api.github.com/search/repositories?q=android_kernel_xiaomi_lavender+caf&sort=stars)" | jq -r '.items[0].clone_url')
+            git clone --depth=1 "$REPO" source
+          fi
+
+          # Fetch Proton Clang Toolchain
+          git clone --depth=1 [https://github.com/kdrag0n/proton-clang.git](https://github.com/kdrag0n/proton-clang.git) $HOME/proton-clang
+
+      - name: Inject SukiSU, SuFS & Set Kernel Name
+        run: |
+          cd source
+          curl -LSs "[https://raw.githubusercontent.com/tiann/KernelSU/main/kernel/setup.sh](https://raw.githubusercontent.com/tiann/KernelSU/main/kernel/setup.sh)" | bash -
+          
+          CONF=$(basename $(find arch/arm64/configs/ -name "*lavender*" -o -name "*perf_defconfig" | head -n 1))
+          echo "Target CAF Defconfig: $CONF"
+          
+          # Inject nv-kernel Branding & Mandatory Flags
+          echo 'CONFIG_LOCALVERSION="-nv-kernel"' >> arch/arm64/configs/$CONF
+          echo "CONFIG_KSU=y" >> arch/arm64/configs/$CONF
+          echo "CONFIG_OVERLAY_FS=y" >> arch/arm64/configs/$CONF
+          echo "CONFIG_SUFS=y" >> arch/arm64/configs/$CONF
+          echo "CONFIG_TMPFS_POSIX_ACL=y" >> arch/arm64/configs/$CONF
+          echo "CONFIG_TMPFS_XATTR=y" >> arch/arm64/configs/$CONF
+          echo "CONFIG_KPROBES=y" >> arch/arm64/configs/$CONF
+          echo "CONFIG_HAVE_KPROBES=y" >> arch/arm64/configs/$CONF
+          echo "CONFIG_KPROBE_EVENTS=y" >> arch/arm64/configs/$CONF
+
+      - name: Compile nv-kernel
+        run: |
+          cd source
+          export PATH="$HOME/proton-clang/bin:$PATH"
+          export ARCH=arm64
+          export SUBARCH=arm64
+          export CC=clang
+          export CROSS_COMPILE=aarch64-linux-gnu-
+          export CROSS_COMPILE_ARM32=arm-linux-gnueabi-
+
+          CONF=$(basename $(find arch/arm64/configs/ -name "*lavender*" -o -name "*perf_defconfig" | head -n 1))
+          
+          make O=out $CONF
+          make -j$(nproc --all) O=out LOCALVERSION="-nv-kernel"
+
+      - name: Package to AnyKernel3 ZIP
+        run: |
+          git clone --depth=1 [https://github.com/osm0sis/AnyKernel3](https://github.com/osm0sis/AnyKernel3) AnyKernel3
+          if [ -f "source/out/arch/arm64/boot/Image.gz-dtb" ]; then
+            cp source/out/arch/arm64/boot/Image.gz-dtb AnyKernel3/
+          elif [ -f "source/out/arch/arm64/boot/Image.gz" ]; then
+            cp source/out/arch/arm64/boot/Image.gz AnyKernel3/
+          fi
+          cd AnyKernel3
+          zip -r9 ../nv-kernel-Lavender-4.4-CAF-SukiSU-SuFS.zip * -x .git README.md
+
+      - name: Upload Output Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nv-kernel-Lavender-4.4-CAF
+          path: nv-kernel-Lavender-4.4-CAF-SukiSU-SuFS.zip
