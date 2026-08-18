@@ -54,6 +54,7 @@ jobs:
           ln -sf ../KernelSU/kernel drivers/kernelsu
           printf '\nobj-$(CONFIG_KSU) += kernelsu/\n' >> drivers/Makefile
           printf '\nsource "drivers/kernelsu/Kconfig"\n' >> drivers/Kconfig
+          sed -i 's/return -ENOSYS$/return -ENOSYS;/' KernelSU/kernel/core_hook.c
 
           CONF=$(basename $(find arch/arm64/configs/ -name "*lavender*" -o -name "*perf_defconfig" | head -n 1))
           echo "Target CAF Defconfig: $CONF"
