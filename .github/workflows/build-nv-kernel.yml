@@ -73,13 +73,20 @@ jobs:
           export ARCH=arm64
           export SUBARCH=arm64
           export CC=clang
+          export LD=ld.lld
           export CROSS_COMPILE=aarch64-linux-gnu-
           export CROSS_COMPILE_ARM32=arm-linux-gnueabi-
 
           CONF=$(basename $(find arch/arm64/configs/ -name "*lavender*" -o -name "*perf_defconfig" | head -n 1))
-          
-          make O=out $CONF
-          make -j$(nproc --all) O=out LOCALVERSION="-nv-kernel"
+
+          make O=out ARCH=arm64 $CONF
+          make -j$(nproc --all) O=out \
+            ARCH=arm64 \
+            CC=clang \
+            LD=ld.lld \
+            CROSS_COMPILE=aarch64-linux-gnu- \
+            CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
+            HOSTCFLAGS="-fcommon"
 
       - name: Package to AnyKernel3 ZIP
         run: |
